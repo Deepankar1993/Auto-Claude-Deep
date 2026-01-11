@@ -3,7 +3,9 @@
  * Handles low-level PTY process creation and lifecycle
  */
 
-import * as pty from '@lydell/node-pty';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pty = require('@lydell/node-pty') as typeof import('@lydell/node-pty');
 import * as os from 'os';
 import * as path from 'path';
 import { existsSync } from 'fs';

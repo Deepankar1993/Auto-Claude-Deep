@@ -13,6 +13,7 @@ import type {
 import { MODEL_ID_MAP } from '../../shared/constants';
 import { InsightsConfig } from './config';
 import { detectRateLimit, createSDKRateLimitInfo } from '../rate-limit-detector';
+import { parsePythonCommand } from '../python-detector';
 
 /**
  * Message processor result
@@ -118,7 +119,9 @@ export class InsightsExecutor extends EventEmitter {
     }
 
     // Spawn Python process
-    const proc = spawn(this.config.getPythonPath(), args, {
+    // Parse Python command to handle space-separated commands like "py -3"
+    const [pythonCommand, pythonBaseArgs] = parsePythonCommand(this.config.getPythonPath());
+    const proc = spawn(pythonCommand, [...pythonBaseArgs, ...args], {
       cwd: autoBuildSource,
       env: processEnv
     });

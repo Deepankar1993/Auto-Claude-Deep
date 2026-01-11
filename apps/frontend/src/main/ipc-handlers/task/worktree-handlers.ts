@@ -4,9 +4,7 @@ import type { IPCResult, WorktreeStatus, WorktreeDiff, WorktreeDiffFile, Worktre
 import path from 'path';
 import { existsSync, readdirSync, statSync, readFileSync } from 'fs';
 import { execSync, execFileSync, spawn, spawnSync, exec, execFile } from 'child_process';
-import { createRequire } from 'module';
-const require = createRequire(import.meta.url);
-const { minimatch } = require('minimatch');
+import { minimatch } from 'minimatch';
 import { projectStore } from '../../project-store';
 import { getConfiguredPythonPath, PythonEnvManager, pythonEnvManager as pythonEnvManagerSingleton } from '../../python-env-manager';
 import { getEffectiveSourcePath } from '../../updater/path-resolver';

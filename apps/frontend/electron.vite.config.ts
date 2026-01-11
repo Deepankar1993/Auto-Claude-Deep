@@ -2,18 +2,40 @@ import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
+// Polyfill banner for __dirname and __filename in ES modules
+const dirnamePolyfill = `
+import { fileURLToPath as __fileURLToPath } from 'url';
+import { dirname as __pathDirname } from 'path';
+const __filename = __fileURLToPath(import.meta.url);
+const __dirname = __pathDirname(__filename);
+`;
+
 export default defineConfig({
   main: {
     plugins: [externalizeDepsPlugin({
       // Bundle these packages into the main process (they won't be in node_modules in packaged app)
       // The 'exclude' list means "exclude from externalization" = "bundle these"
       exclude: [
+        // Core utilities
         'dotenv',  // Required at startup before any other imports
         'uuid',
-        'chokidar',
-        'kuzu',
+        'semver',  // Version comparison utilities
+        'zod',  // Schema validation
+        'minimatch',  // Glob pattern matching
+
+        // Electron ecosystem
         'electron-updater',
-        '@electron-toolkit/utils'
+        'electron-log',  // Logging for main process
+        '@electron-toolkit/utils',
+        '@sentry/electron',  // Error tracking (includes /main)
+
+        // File system utilities
+        'chokidar',
+        'proper-lockfile',  // File locking for profile manager
+        'kuzu',
+
+        // API clients
+        '@anthropic-ai/sdk'  // Anthropic SDK for API key validation
       ]
     })],
     build: {
@@ -22,7 +44,11 @@ export default defineConfig({
           index: resolve(__dirname, 'src/main/index.ts')
         },
         // Only node-pty needs to be external (native module rebuilt by electron-builder)
-        external: ['@lydell/node-pty']
+        external: ['@lydell/node-pty'],
+        output: {
+          // Inject __dirname/__filename polyfill at the start of the bundle
+          banner: dirnamePolyfill
+        }
       }
     }
   },

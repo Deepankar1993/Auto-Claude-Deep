@@ -10,7 +10,9 @@
 
 import * as net from 'net';
 import * as fs from 'fs';
-import * as pty from '@lydell/node-pty';
+import { createRequire } from 'module';
+const require = createRequire(import.meta.url);
+const pty = require('@lydell/node-pty') as typeof import('@lydell/node-pty');
 
 const SOCKET_PATH =
   process.platform === 'win32'

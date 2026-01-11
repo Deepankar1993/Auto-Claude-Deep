@@ -1,6 +1,6 @@
 {
   "name": "auto-claude",
-  "version": "2.7.3-beta.12",
+  "version": "2.7.3-beta.14",
   "description": "Autonomous multi-agent coding framework powered by Claude AI",
   "license": "AGPL-3.0",
   "author": "Auto Claude Team",
@@ -43,5 +43,10 @@
   ],
   "devDependencies": {
     "jsdom": "^27.4.0"
+  },
+  "dependencies": {
+    "@rollup/rollup-win32-x64-msvc": "^4.55.1",
+    "@tailwindcss/oxide-win32-x64-msvc": "^4.1.18",
+    "lightningcss-win32-x64-msvc": "^1.30.2"
   }
 }
