@@ -30,9 +30,9 @@ interface UseGitHubPRsResult {
   selectedPRNumber: number | null;
   reviewResult: PRReviewResult | null;
   reviewProgress: PRReviewProgress | null;
+  startedAt: string | null;
   isReviewing: boolean;
   previousReviewResult: PRReviewResult | null;
-  startedAt: string | null;
   isConnected: boolean;
   repoFullName: string | null;
   activePRReviews: number[]; // PR numbers currently being reviewed
@@ -178,9 +178,10 @@ export function useGitHubPRs(
               }
 
               // Batch preload review results for PRs not in store (single IPC call)
+              // Skip PRs that are currently being reviewed - their state is managed by IPC listeners
               const prsNeedingPreload = result.filter((pr) => {
                 const existingState = getPRReviewState(projectId, pr.number);
-                return !existingState?.result;
+                return !existingState?.result && !existingState?.isReviewing;
               });
 
               if (prsNeedingPreload.length > 0) {
@@ -291,8 +292,9 @@ export function useGitHubPRs(
 
         // Load existing review from disk if not already in store
         const existingState = getPRReviewState(projectId, prNumber);
-        // Only fetch from disk if we don't have a result in the store
-        if (!existingState?.result) {
+        // Only fetch from disk if we don't have a result in the store AND no review is running
+        // If a review is in progress, the state is managed by IPC listeners - don't overwrite it
+        if (!existingState?.result && !existingState?.isReviewing) {
           window.electronAPI.github.getPRReview(projectId, prNumber).then((result) => {
             if (result) {
               // Update store with the loaded result
@@ -506,9 +508,9 @@ export function useGitHubPRs(
     selectedPRNumber,
     reviewResult,
     reviewProgress,
+    startedAt,
     isReviewing,
     previousReviewResult,
-    startedAt,
     isConnected,
     repoFullName,
     activePRReviews,

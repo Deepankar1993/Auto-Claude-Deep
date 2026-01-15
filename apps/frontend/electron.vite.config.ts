@@ -2,6 +2,7 @@ import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
+<<<<<<< HEAD
 // Polyfill banner for __dirname and __filename in ES modules
 const dirnamePolyfill = `
 import { fileURLToPath as __fileURLToPath } from 'url';
@@ -9,9 +10,26 @@ import { dirname as __pathDirname } from 'path';
 const __filename = __fileURLToPath(import.meta.url);
 const __dirname = __pathDirname(__filename);
 `;
+=======
+/**
+ * Sentry configuration embedded at build time.
+ *
+ * In CI builds, these come from GitHub secrets.
+ * In local development, these come from apps/frontend/.env (loaded by dotenv).
+ *
+ * The `define` option replaces these values at build time, so they're
+ * embedded in the bundle and available at runtime in packaged apps.
+ */
+const sentryDefines = {
+  '__SENTRY_DSN__': JSON.stringify(process.env.SENTRY_DSN || ''),
+  '__SENTRY_TRACES_SAMPLE_RATE__': JSON.stringify(process.env.SENTRY_TRACES_SAMPLE_RATE || '0.1'),
+  '__SENTRY_PROFILES_SAMPLE_RATE__': JSON.stringify(process.env.SENTRY_PROFILES_SAMPLE_RATE || '0.1'),
+};
+>>>>>>> 120071cd42f68e5994d9ee06ef7b6df03f4aa134
 
 export default defineConfig({
   main: {
+    define: sentryDefines,
     plugins: [externalizeDepsPlugin({
       // Bundle these packages into the main process (they won't be in node_modules in packaged app)
       // The 'exclude' list means "exclude from externalization" = "bundle these"
@@ -25,6 +43,7 @@ export default defineConfig({
 
         // Electron ecosystem
         'electron-updater',
+<<<<<<< HEAD
         'electron-log',  // Logging for main process
         '@electron-toolkit/utils',
         '@sentry/electron',  // Error tracking (includes /main)
@@ -36,6 +55,17 @@ export default defineConfig({
 
         // API clients
         '@anthropic-ai/sdk'  // Anthropic SDK for API key validation
+=======
+        '@electron-toolkit/utils',
+        // Sentry and its transitive dependencies (opentelemetry -> debug -> ms)
+        '@sentry/electron',
+        '@sentry/core',
+        '@sentry/node',
+        '@sentry/utils',
+        '@opentelemetry/instrumentation',
+        'debug',
+        'ms'
+>>>>>>> 120071cd42f68e5994d9ee06ef7b6df03f4aa134
       ]
     })],
     build: {
@@ -63,6 +93,7 @@ export default defineConfig({
     }
   },
   renderer: {
+    define: sentryDefines,
     root: resolve(__dirname, 'src/renderer'),
     build: {
       rollupOptions: {

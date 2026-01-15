@@ -168,4 +168,8 @@ OPUS_ANALYSIS_AND_IDEAS.md
 
 # Auto Claude generated files
 .security-key
+<<<<<<< HEAD
 .serena/
+=======
+/shared_docs
+>>>>>>> 120071cd42f68e5994d9ee06ef7b6df03f4aa134
