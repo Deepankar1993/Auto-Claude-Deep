@@ -1,8 +1,10 @@
 import { writeFileSync } from 'fs';
 import { tmpdir } from 'os';
+import path from 'path';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type * as pty from '@lydell/node-pty';
 import type { TerminalProcess } from '../types';
+import { buildCdCommand } from '../../../shared/utils/shell-escape';
 
 /** Escape special regex characters in a string for safe use in RegExp constructor */
 const escapeForRegex = (str: string): string => str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -100,7 +102,7 @@ describe('claude-integration-handler', () => {
     invokeClaude(terminal, '/tmp/project', undefined, () => null, vi.fn());
 
     const written = vi.mocked(terminal.pty.write).mock.calls[0][0] as string;
-    expect(written).toContain("cd '/tmp/project' && ");
+    expect(written).toContain(buildCdCommand('/tmp/project'));
     expect(written).toContain("PATH='/opt/claude/bin:/usr/bin' ");
     expect(written).toContain("'/opt/claude bin/claude'\\''s'");
     expect(mockReleaseSessionId).toHaveBeenCalledWith('term-1');
@@ -233,8 +235,8 @@ describe('claude-integration-handler', () => {
 
     const tokenPath = vi.mocked(writeFileSync).mock.calls[0]?.[0] as string;
     const tokenContents = vi.mocked(writeFileSync).mock.calls[0]?.[1] as string;
-    const tmpDir = escapeForRegex(tmpdir());
-    expect(tokenPath).toMatch(new RegExp(`^${tmpDir}/\\.claude-token-1234-[0-9a-f]{16}$`));
+    const tokenPrefix = path.join(tmpdir(), '.claude-token-1234-');
+    expect(tokenPath).toMatch(new RegExp(`^${escapeForRegex(tokenPrefix)}[0-9a-f]{16}$`));
     expect(tokenContents).toBe("export CLAUDE_CODE_OAUTH_TOKEN='token-value'\n");
     const written = vi.mocked(terminal.pty.write).mock.calls[0][0] as string;
     expect(written).toContain("HISTFILE= HISTCONTROL=ignorespace ");
@@ -276,8 +278,8 @@ describe('claude-integration-handler', () => {
 
     const tokenPath = vi.mocked(writeFileSync).mock.calls[0]?.[0] as string;
     const tokenContents = vi.mocked(writeFileSync).mock.calls[0]?.[1] as string;
-    const tmpDir = escapeForRegex(tmpdir());
-    expect(tokenPath).toMatch(new RegExp(`^${tmpDir}/\\.claude-token-5678-[0-9a-f]{16}$`));
+    const tokenPrefix = path.join(tmpdir(), '.claude-token-5678-');
+    expect(tokenPath).toMatch(new RegExp(`^${escapeForRegex(tokenPrefix)}[0-9a-f]{16}$`));
     expect(tokenContents).toBe("export CLAUDE_CODE_OAUTH_TOKEN='token-value'\n");
     const written = vi.mocked(terminal.pty.write).mock.calls[0][0] as string;
     expect(written).toContain(`source '${tokenPath}'`);
@@ -500,9 +502,10 @@ describe('claude-integration-handler - Helper Functions', () => {
   });
 
   describe('finalizeClaudeInvoke', () => {
-    it('should set terminal title to "Claude" for default profile', async () => {
+    it('should set terminal title to "Claude" for default profile when terminal has default name', async () => {
       const { finalizeClaudeInvoke } = await import('../claude-integration-handler');
-      const terminal = createMockTerminal();
+      // Use a default terminal name pattern so renaming logic kicks in
+      const terminal = createMockTerminal({ title: 'Terminal 1' });
       const mockWindow = {
         webContents: { send: vi.fn() }
       };
@@ -521,7 +524,8 @@ describe('claude-integration-handler - Helper Functions', () => {
 
     it('should set terminal title to "Claude (ProfileName)" for non-default profile', async () => {
       const { finalizeClaudeInvoke } = await import('../claude-integration-handler');
-      const terminal = createMockTerminal();
+      // Use a default terminal name pattern so renaming logic kicks in
+      const terminal = createMockTerminal({ title: 'Terminal 2' });
       const mockWindow = {
         webContents: { send: vi.fn() }
       };
@@ -538,9 +542,10 @@ describe('claude-integration-handler - Helper Functions', () => {
       expect(terminal.title).toBe('Claude (Work Profile)');
     });
 
-    it('should send IPC message to renderer', async () => {
+    it('should send IPC message to renderer when terminal has default name', async () => {
       const { finalizeClaudeInvoke } = await import('../claude-integration-handler');
-      const terminal = createMockTerminal();
+      // Use a default terminal name pattern so renaming logic kicks in
+      const terminal = createMockTerminal({ title: 'Terminal 3' });
       const mockSend = vi.fn();
       const mockWindow = {
         webContents: { send: mockSend }
@@ -560,6 +565,54 @@ describe('claude-integration-handler - Helper Functions', () => {
         terminal.id,
         'Claude'
       );
+    });
+
+    it('should NOT rename terminal when already named Claude', async () => {
+      const { finalizeClaudeInvoke } = await import('../claude-integration-handler');
+      // Terminal already has Claude title - should NOT be renamed
+      const terminal = createMockTerminal({ title: 'Claude' });
+      const mockSend = vi.fn();
+      const mockWindow = {
+        webContents: { send: mockSend }
+      };
+
+      finalizeClaudeInvoke(
+        terminal,
+        { name: 'Work Profile', isDefault: false },
+        '/tmp/project',
+        Date.now(),
+        () => mockWindow as any,
+        vi.fn()
+      );
+
+      // Title should remain unchanged
+      expect(terminal.title).toBe('Claude');
+      // No IPC message should be sent for title change
+      expect(mockSend).not.toHaveBeenCalled();
+    });
+
+    it('should NOT rename terminal with user-customized name', async () => {
+      const { finalizeClaudeInvoke } = await import('../claude-integration-handler');
+      // User has customized the terminal name - should NOT be renamed
+      const terminal = createMockTerminal({ title: 'My Custom Terminal' });
+      const mockSend = vi.fn();
+      const mockWindow = {
+        webContents: { send: mockSend }
+      };
+
+      finalizeClaudeInvoke(
+        terminal,
+        undefined,
+        '/tmp/project',
+        Date.now(),
+        () => mockWindow as any,
+        vi.fn()
+      );
+
+      // Title should remain unchanged
+      expect(terminal.title).toBe('My Custom Terminal');
+      // No IPC message should be sent for title change
+      expect(mockSend).not.toHaveBeenCalled();
     });
 
     it('should persist session when terminal has projectPath', async () => {

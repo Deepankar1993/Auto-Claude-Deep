@@ -2,15 +2,6 @@ import { defineConfig, externalizeDepsPlugin } from 'electron-vite';
 import react from '@vitejs/plugin-react';
 import { resolve } from 'path';
 
-<<<<<<< HEAD
-// Polyfill banner for __dirname and __filename in ES modules
-const dirnamePolyfill = `
-import { fileURLToPath as __fileURLToPath } from 'url';
-import { dirname as __pathDirname } from 'path';
-const __filename = __fileURLToPath(import.meta.url);
-const __dirname = __pathDirname(__filename);
-`;
-=======
 /**
  * Sentry configuration embedded at build time.
  *
@@ -25,37 +16,17 @@ const sentryDefines = {
   '__SENTRY_TRACES_SAMPLE_RATE__': JSON.stringify(process.env.SENTRY_TRACES_SAMPLE_RATE || '0.1'),
   '__SENTRY_PROFILES_SAMPLE_RATE__': JSON.stringify(process.env.SENTRY_PROFILES_SAMPLE_RATE || '0.1'),
 };
->>>>>>> 120071cd42f68e5994d9ee06ef7b6df03f4aa134
 
 export default defineConfig({
   main: {
     define: sentryDefines,
     plugins: [externalizeDepsPlugin({
       // Bundle these packages into the main process (they won't be in node_modules in packaged app)
-      // The 'exclude' list means "exclude from externalization" = "bundle these"
       exclude: [
-        // Core utilities
-        'dotenv',  // Required at startup before any other imports
         'uuid',
-        'semver',  // Version comparison utilities
-        'zod',  // Schema validation
-        'minimatch',  // Glob pattern matching
-
-        // Electron ecosystem
-        'electron-updater',
-<<<<<<< HEAD
-        'electron-log',  // Logging for main process
-        '@electron-toolkit/utils',
-        '@sentry/electron',  // Error tracking (includes /main)
-
-        // File system utilities
         'chokidar',
-        'proper-lockfile',  // File locking for profile manager
         'kuzu',
-
-        // API clients
-        '@anthropic-ai/sdk'  // Anthropic SDK for API key validation
-=======
+        'electron-updater',
         '@electron-toolkit/utils',
         // Sentry and its transitive dependencies (opentelemetry -> debug -> ms)
         '@sentry/electron',
@@ -65,7 +36,6 @@ export default defineConfig({
         '@opentelemetry/instrumentation',
         'debug',
         'ms'
->>>>>>> 120071cd42f68e5994d9ee06ef7b6df03f4aa134
       ]
     })],
     build: {
@@ -74,11 +44,7 @@ export default defineConfig({
           index: resolve(__dirname, 'src/main/index.ts')
         },
         // Only node-pty needs to be external (native module rebuilt by electron-builder)
-        external: ['@lydell/node-pty'],
-        output: {
-          // Inject __dirname/__filename polyfill at the start of the bundle
-          banner: dirnamePolyfill
-        }
+        external: ['@lydell/node-pty']
       }
     }
   },
